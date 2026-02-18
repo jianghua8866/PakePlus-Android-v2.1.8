@@ -1,11 +1,623 @@
 <!DOCTYPE html>
 <html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>PakePlus</title>
-    </head>
-    <body>
-        PakePlus
-    </body>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>几何绘图 · 形状画板</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+        }
+        body {
+            background: #1e2b36;
+            min-height: 100vh;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
+            padding: 12px;
+        }
+        .app-container {
+            background: #2d3f4b;
+            padding: 20px 20px 25px 20px;
+            border-radius: 48px 48px 36px 36px;
+            box-shadow: 0 20px 35px rgba(0,0,0,0.7), inset 1px 1px 4px rgba(255,255,255,0.1), inset -3px -3px 8px rgba(0,0,0,0.5);
+            border: 1px solid #4f6573;
+            max-width: 100%;
+            width: fit-content;
+        }
+        canvas {
+            display: block;
+            margin: 0 auto;
+            background: white;
+            border-radius: 32px;
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.3), 0 15px 25px -8px black;
+            cursor: crosshair;
+            touch-action: none;
+            width: min(85vw, 700px);
+            height: auto;
+            aspect-ratio: 7 / 5;  /* 700*500比例 */
+        }
+        .toolbar-panel {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            gap: 12px 15px;
+            margin-top: 20px;
+            padding: 12px 18px;
+            background: #273b46;
+            border-radius: 60px;
+            box-shadow: inset 0 2px 6px #16232b, 0 7px 14px rgba(0,0,0,0.5);
+        }
+        .shape-selector {
+            display: flex;
+            gap: 8px;
+            background: #1d2e38;
+            padding: 6px 12px;
+            border-radius: 40px;
+            box-shadow: inset 0 1px 4px #0f1a21;
+        }
+        .shape-btn {
+            background: #345161;
+            border: none;
+            color: white;
+            font-size: 1.1rem;
+            font-weight: 500;
+            min-width: 55px;
+            height: 48px;
+            border-radius: 30px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 5px 0 #1d2c36, 0 6px 10px rgba(0,0,0,0.4);
+            transition: 0.06s ease;
+            border: 1px solid #5d7a8b;
+            padding: 0 16px;
+            gap: 4px;
+        }
+        .shape-btn.active {
+            background: #b2d1e6;
+            color: #1c2f3c;
+            transform: translateY(3px);
+            box-shadow: 0 2px 0 #3f5b6b, 0 5px 10px rgba(0,0,0,0.3);
+            border-color: #a1c0d3;
+            font-weight: 600;
+        }
+        .color-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #1d2e38;
+            padding: 5px 18px;
+            border-radius: 40px;
+            box-shadow: inset 0 1px 4px #0f1a21;
+        }
+        .color-picker {
+            width: 48px;
+            height: 48px;
+            border-radius: 30px;
+            border: 2px solid white;
+            background: transparent;
+            cursor: pointer;
+            box-shadow: 0 4px 8px black;
+            padding: 0;
+        }
+        .color-picker::-webkit-color-swatch-wrapper { padding: 0; }
+        .color-picker::-webkit-color-swatch { border: none; border-radius: 30px; }
+
+        .slider-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #1d2e38;
+            padding: 6px 20px 6px 18px;
+            border-radius: 40px;
+            color: white;
+            box-shadow: inset 0 2px 5px #0f1a21;
+        }
+        .slider-group span {
+            font-weight: 600;
+            min-width: 45px;
+            text-align: center;
+            background: #293e4b;
+            padding: 4px 0;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            color: #d3e4f2;
+        }
+        input[type=range] {
+            width: 130px;
+            height: 8px;
+            background: #3e5563;
+            border-radius: 10px;
+            -webkit-appearance: none;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 22px;
+            height: 22px;
+            background: #eaf4ff;
+            border-radius: 50%;
+            box-shadow: 0 2px 8px black;
+            border: 2px solid #c0d6e8;
+            cursor: grab;
+        }
+        .fill-toggle {
+            background: #374f5d;
+            color: white;
+            border: none;
+            height: 48px;
+            border-radius: 40px;
+            padding: 0 25px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            box-shadow: 0 5px 0 #1f313c, 0 6px 10px rgba(0,0,0,0.4);
+            cursor: pointer;
+            transition: 0.06s;
+            border: 1px solid #6e8b9c;
+            white-space: nowrap;
+        }
+        .fill-toggle.active {
+            background: #b3cfec;
+            color: #1a2b35;
+            transform: translateY(3px);
+            box-shadow: 0 2px 0 #3d5a6b;
+        }
+        .action-btns {
+            display: flex;
+            gap: 10px;
+        }
+        .action-btns button {
+            background: #4f3f4f;
+            border: none;
+            color: white;
+            font-size: 1rem;
+            font-weight: 500;
+            height: 48px;
+            padding: 0 25px;
+            border-radius: 40px;
+            box-shadow: 0 5px 0 #352b35, 0 6px 10px rgba(0,0,0,0.4);
+            cursor: pointer;
+            border: 1px solid #7f6d7f;
+            transition: 0.06s;
+            white-space: nowrap;
+        }
+        .action-btns button:active {
+            transform: translateY(5px);
+            box-shadow: 0 2px 0 #352b35;
+        }
+        #clearBtn { background: #7a5454; border-color: #a57a7a; }
+        #downloadBtn { background: #496d61; border-color: #6f9b8b; }
+        footer {
+            text-align: center;
+            color: #9bb8cf;
+            margin-top: 18px;
+            font-size: 0.85rem;
+            text-shadow: 0 2px 3px black;
+        }
+    </style>
+</head>
+<body>
+<div class="app-container">
+    <!-- 画布 700*500 -->
+    <canvas id="shapeCanvas" width="700" height="500"></canvas>
+
+    <!-- 多功能工具栏 -->
+    <div class="toolbar-panel">
+        <!-- 形状选择 -->
+        <div class="shape-selector">
+            <button class="shape-btn" data-shape="free">✏️ 自由</button>
+            <button class="shape-btn active" data-shape="line">📏 直线</button>
+            <button class="shape-btn" data-shape="rect">🔲 矩形</button>
+            <button class="shape-btn" data-shape="circle">⚪ 圆</button>
+            <button class="shape-btn" data-shape="arc">🌙 弧</button>
+        </div>
+
+        <!-- 颜色与填充 -->
+        <div class="color-row">
+            <input type="color" id="strokeColor" class="color-picker" value="#1e4d7c">
+            <button id="fillToggle" class="fill-toggle" title="填充开关">⬜ 填充</button>
+        </div>
+
+        <!-- 笔触粗细 -->
+        <div class="slider-group">
+            <span id="sizeValue">5</span>
+            <input type="range" id="brushSize" min="1" max="30" value="5" step="1">
+        </div>
+
+        <!-- 辅助操作 -->
+        <div class="action-btns">
+            <button id="clearBtn">🗑️ 清空</button>
+            <button id="downloadBtn">💾 保存</button>
+        </div>
+    </div>
+    <footer>• 拖拽绘制形状 • 松开完成 • 自由画笔可涂鸦 •</footer>
+</div>
+
+<script>
+    (function() {
+        const canvas = document.getElementById('shapeCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // ----- 元素绑定 -----
+        const strokeColorPicker = document.getElementById('strokeColor');
+        const fillToggleBtn = document.getElementById('fillToggle');
+        const brushSizeRange = document.getElementById('brushSize');
+        const sizeSpan = document.getElementById('sizeValue');
+        const shapeBtns = document.querySelectorAll('.shape-btn');
+        const clearBtn = document.getElementById('clearBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
+
+        // ----- 状态 -----
+        let currentShape = 'line';          // 默认直线 (free, line, rect, circle, arc)
+        let strokeColor = '#1e4d7c';
+        let fillEnabled = false;            // 填充开关
+        let lineWidth = 5;
+        
+        // 绘图标志
+        let drawing = false;
+        let startX = 0, startY = 0;          // 形状起点 (鼠标按下时的画布坐标)
+        let lastX = 0, lastY = 0;             // 用于自由画笔/实时更新
+
+        // 临时存储当前绘制的形状数据 (用于实时预览)
+        let previewShape = null;              // 存放临时形状参数
+
+        // ----- 初始化画布为纯白 -----
+        function clearCanvasToWhite() {
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // 不自动重绘网格，保持干净
+        }
+        clearCanvasToWhite();
+
+        // ----- 辅助函数：更新画笔样式（轮廓/填充预备）-----
+        function applyStrokeStyle() {
+            ctx.strokeStyle = strokeColor;
+            ctx.lineWidth = lineWidth;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+        }
+
+        // ----- 绘制所有永久内容 + 预览形状 (双缓冲思想: 每次mousemove重绘画布) -----
+        // 我们采用“全重绘”模式：每次更新时，先把底层画布清空重绘永久内容，再绘制预览形状。
+        // 但为了简单，我们用第二个离屏canvas？但这里直接在原有画布上: 保存一份永久图像数据。
+        // 更稳健: 维护一个“保存的像素”或者存储绘制指令列表。
+        // 为了演示尽可能简单但功能完整，我们采用一个“快照”方式：开始绘制前保存画布状态，每次预览时恢复并绘制新预览。
+        
+        let snapshotImageData = null; // 用于存放开始拖动前的画布像素
+
+        // 保存当前画布快照
+        function takeSnapshot() {
+            snapshotImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        }
+
+        // 恢复快照 (并保留绘图上下文风格)
+        function restoreSnapshot() {
+            if (snapshotImageData) {
+                ctx.putImageData(snapshotImageData, 0, 0);
+            }
+        }
+
+        // 完成形状绘制后，将预览形状永久画上 (调用绘制函数并提交)
+        function commitShape(shape, x1, y1, x2, y2) {
+            // 恢复快照 (清除预览层)
+            restoreSnapshot();
+            // 正式绘制形状到画布 (使用当前颜色、填充、线宽)
+            applyStrokeStyle();
+            drawShapeDirect(shape, x1, y1, x2, y2);
+            // 丢弃快照 (下次拖拽会重新取)
+            snapshotImageData = null;
+        }
+
+        // 直接绘制形状（无预览干扰，只画一次）
+        function drawShapeDirect(shape, x1, y1, x2, y2) {
+            // 确保 normalize 坐标 (左上到右下)
+            const left = Math.min(x1, x2);
+            const right = Math.max(x1, x2);
+            const top = Math.min(y1, y2);
+            const bottom = Math.max(y1, y2);
+            const width = right - left;
+            const height = bottom - top;
+            const centerX = (x1 + x2) / 2;
+            const centerY = (y1 + y2) / 2;
+            const radius = Math.sqrt(width * width + height * height) / 2; // 用于圆/弧
+
+            ctx.beginPath();
+
+            switch (shape) {
+                case 'free':
+                    // 自由画笔不会进入这里（自由是实时绘制点，单独处理）
+                    break;
+                case 'line':
+                    ctx.moveTo(x1, y1);
+                    ctx.lineTo(x2, y2);
+                    ctx.stroke();
+                    break;
+                case 'rect':
+                    if (fillEnabled) {
+                        ctx.fillRect(left, top, width, height);
+                        ctx.strokeRect(left, top, width, height); // 轮廓可见
+                    } else {
+                        ctx.strokeRect(left, top, width, height);
+                    }
+                    break;
+                case 'circle':
+                    ctx.ellipse(centerX, centerY, width/2, height/2, 0, 0, Math.PI * 2);
+                    if (fillEnabled) {
+                        ctx.fill();
+                        ctx.stroke();
+                    } else {
+                        ctx.stroke();
+                    }
+                    break;
+                case 'arc': {
+                    // 绘制圆弧(从起点到终点方向画一段弧, 类似两个点之间的弧形). 简单实现: 以中心为圆点, 从向量角度绘制扇形/弧.
+                    // 这里我们画一个椭圆弧: 根据两点决定包围盒, 使用起始角度0, 终点角度根据相对位置?
+                    // 为了直观: 画一个四分之一圆弧(类似于矩形内切圆弧)，从右上到左下。
+                    // 更符合直觉: 两点确定矩形，画一个从(start角度45°到end角度135°)的弧。我们简单画个90度圆弧。
+                    // 但为了让用户可控制，我们取两点连线中点作为圆心，半径取长边一半，起始角取指向p1的角度，终止角取指向p2的角度。
+                    const dx = x2 - x1;
+                    const dy = y2 - y1;
+                    const cx = (x1 + x2) / 2;
+                    const cy = (y1 + y2) / 2;
+                    const r = Math.sqrt(dx*dx + dy*dy) / 2;
+                    let startAngle = Math.atan2(y1 - cy, x1 - cx);
+                    let endAngle = Math.atan2(y2 - cy, x2 - cx);
+                    // 确保画的是短弧 (顺时针)
+                    if (endAngle < startAngle) endAngle += Math.PI * 2;
+                    if (endAngle - startAngle > Math.PI) { // 如果大于180度，取补角
+                        [startAngle, endAngle] = [endAngle, startAngle];
+                        if (startAngle > endAngle) endAngle += Math.PI * 2;
+                    }
+                    ctx.arc(cx, cy, r, startAngle, endAngle);
+                    if (fillEnabled) {
+                        ctx.fill();
+                        ctx.stroke();
+                    } else {
+                        ctx.stroke();
+                    }
+                    break;
+                }
+                default: break;
+            }
+        }
+
+        // ----- 预览功能：基于当前起点和最新点绘制半透明预览 -----
+        function drawPreview(shape, x1, y1, x2, y2) {
+            restoreSnapshot(); // 恢复到底层图像
+            // 用半透明/虚线效果展示预览
+            ctx.save();
+            ctx.strokeStyle = strokeColor;
+            ctx.fillStyle = strokeColor + '40'; // 半透明填充
+            ctx.lineWidth = lineWidth;
+            ctx.setLineDash([6, 4]);
+            
+            const left = Math.min(x1, x2);
+            const right = Math.max(x1, x2);
+            const top = Math.min(y1, y2);
+            const bottom = Math.max(y1, y2);
+            const width = right - left;
+            const height = bottom - top;
+            const centerX = (x1 + x2) / 2;
+            const centerY = (y1 + y2) / 2;
+
+            ctx.beginPath();
+            switch (shape) {
+                case 'line':
+                    ctx.moveTo(x1, y1);
+                    ctx.lineTo(x2, y2);
+                    ctx.stroke();
+                    break;
+                case 'rect':
+                    if (fillEnabled) {
+                        ctx.fillRect(left, top, width, height);
+                    }
+                    ctx.strokeRect(left, top, width, height);
+                    break;
+                case 'circle':
+                    ctx.ellipse(centerX, centerY, width/2, height/2, 0, 0, Math.PI*2);
+                    if (fillEnabled) ctx.fill();
+                    ctx.stroke();
+                    break;
+                case 'arc': {
+                    const dx = x2 - x1;
+                    const dy = y2 - y1;
+                    const cx = (x1 + x2) / 2;
+                    const cy = (y1 + y2) / 2;
+                    const r = Math.sqrt(dx*dx + dy*dy) / 2;
+                    let startAngle = Math.atan2(y1 - cy, x1 - cx);
+                    let endAngle = Math.atan2(y2 - cy, x2 - cx);
+                    if (endAngle < startAngle) endAngle += Math.PI * 2;
+                    if (endAngle - startAngle > Math.PI) {
+                        [startAngle, endAngle] = [endAngle, startAngle];
+                        if (startAngle > endAngle) endAngle += Math.PI * 2;
+                    }
+                    ctx.arc(cx, cy, r, startAngle, endAngle);
+                    if (fillEnabled) ctx.fill();
+                    ctx.stroke();
+                    break;
+                }
+                default: break;
+            }
+            ctx.restore(); // 恢复虚线设置
+        }
+
+        // ----- 自由画笔处理 (与之前涂鸦类似) -----
+        function startFreeStroke(e) {
+            drawing = true;
+            const { x, y } = getCanvasCoords(e);
+            lastX = x; lastY = y;
+            ctx.beginPath();
+            ctx.moveTo(lastX, lastY);
+            // 立即画一个点
+            applyStrokeStyle();
+            ctx.lineTo(lastX, lastY);
+            ctx.stroke();
+            // 自由画笔模式下，每次画点后需要更新快照？但我们用全重绘模式不方便；干脆自由模式不用快照，直接绘制，并关闭快照干扰。
+            // 为了兼容，自由模式特殊处理：不使用预览快照，直接绘制线条。
+            // 在自由模式下禁止形状预览相关。
+        }
+
+        function freeStrokeMove(e) {
+            if (!drawing || currentShape !== 'free') return;
+            e.preventDefault();
+            const { x, y } = getCanvasCoords(e);
+            applyStrokeStyle();
+            ctx.beginPath();
+            ctx.moveTo(lastX, lastY);
+            ctx.lineTo(x, y);
+            ctx.stroke();
+            lastX = x; lastY = y;
+        }
+
+        // ----- 坐标获取 (兼容触摸/鼠标) -----
+        function getCanvasCoords(e) {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            let clientX, clientY;
+            if (e.touches) {
+                clientX = e.touches[0].clientX;
+                clientY = e.touches[0].clientY;
+            } else {
+                clientX = e.clientX;
+                clientY = e.clientY;
+            }
+            let canvasX = (clientX - rect.left) * scaleX;
+            let canvasY = (clientY - rect.top) * scaleY;
+            canvasX = Math.min(canvas.width-1, Math.max(0, canvasX));
+            canvasY = Math.min(canvas.height-1, Math.max(0, canvasY));
+            return { x: canvasX, y: canvasY };
+        }
+
+        // ----- 事件处理器 -----
+        function handlePointerDown(e) {
+            e.preventDefault();
+            const { x, y } = getCanvasCoords(e);
+            if (currentShape === 'free') {
+                // 自由画笔
+                startFreeStroke(e);
+            } else {
+                // 几何形状开始: 记录起点，保存快照
+                drawing = true;
+                startX = x; startY = y;
+                lastX = x; lastY = y; // 用于移动
+                takeSnapshot();        // 拍下当前干净画布
+            }
+        }
+
+        function handlePointerMove(e) {
+            if (!drawing) return;
+            e.preventDefault();
+
+            const { x, y } = getCanvasCoords(e);
+            if (currentShape === 'free') {
+                freeStrokeMove(e);
+                return;
+            }
+
+            // 几何形状预览更新
+            if (snapshotImageData) {
+                drawPreview(currentShape, startX, startY, x, y);
+            }
+        }
+
+        function handlePointerUp(e) {
+            if (!drawing) return;
+            e.preventDefault();
+
+            if (currentShape === 'free') {
+                drawing = false;
+                ctx.closePath();
+                return;
+            }
+
+            // 几何形状结束：获取终点坐标，提交形状
+            const { x, y } = getCanvasCoords(e);
+            if (snapshotImageData && (Math.abs(x - startX) > 2 || Math.abs(y - startY) > 2)) {
+                // 防止点击产生小点（但可以画点）
+                commitShape(currentShape, startX, startY, x, y);
+            } else {
+                // 如果只是点击没拖动，恢复快照不画任何东西（或者可以画一个点？我们选择恢复）
+                restoreSnapshot();
+            }
+            drawing = false;
+            snapshotImageData = null;
+        }
+
+        // 取消绘制 (如触摸中断)
+        function handlePointerCancel(e) {
+            if (drawing) {
+                if (snapshotImageData) {
+                    restoreSnapshot();
+                }
+                drawing = false;
+                snapshotImageData = null;
+            }
+        }
+
+        // ----- 事件绑定 -----
+        canvas.addEventListener('mousedown', handlePointerDown);
+        canvas.addEventListener('mousemove', handlePointerMove);
+        canvas.addEventListener('mouseup', handlePointerUp);
+        canvas.addEventListener('mouseleave', handlePointerCancel);
+
+        canvas.addEventListener('touchstart', handlePointerDown, { passive: false });
+        canvas.addEventListener('touchmove', handlePointerMove, { passive: false });
+        canvas.addEventListener('touchend', handlePointerUp);
+        canvas.addEventListener('touchcancel', handlePointerCancel);
+
+        // ----- 形状切换 -----
+        shapeBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                shapeBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentShape = btn.dataset.shape;
+            });
+        });
+
+        // ----- 颜色变化 -----
+        strokeColorPicker.addEventListener('input', (e) => {
+            strokeColor = e.target.value;
+        });
+
+        // ----- 填充切换 -----
+        fillToggleBtn.addEventListener('click', () => {
+            fillEnabled = !fillEnabled;
+            fillToggleBtn.classList.toggle('active', fillEnabled);
+            fillToggleBtn.textContent = fillEnabled ? '🔲 填充开' : '⬜ 填充关';
+        });
+
+        // ----- 粗细调整 -----
+        brushSizeRange.addEventListener('input', (e) => {
+            lineWidth = parseInt(e.target.value, 10);
+            sizeSpan.textContent = lineWidth;
+        });
+
+        // ----- 清空 -----
+        clearBtn.addEventListener('click', () => {
+            clearCanvasToWhite();
+            snapshotImageData = null;
+            drawing = false;
+        });
+
+        // ----- 保存 -----
+        downloadBtn.addEventListener('click', () => {
+            const dataURL = canvas.toDataURL('image/png');
+            const link = document.createElement('a');
+            link.download = `shape_${Date.now()}.png`;
+            link.href = dataURL;
+            link.click();
+        });
+
+        // 初始化显示
+        sizeSpan.textContent = lineWidth;
+        fillToggleBtn.textContent = fillEnabled ? '🔲 填充开' : '⬜ 填充关';
+    })();
+</script>
+</body>
 </html>
